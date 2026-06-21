@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_21_173450) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_21_173853) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,6 +18,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173450) do
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "license_checkouts", force: :cascade do |t|
+    t.datetime "checked_in_at"
+    t.datetime "checked_out_at"
+    t.datetime "created_at", null: false
+    t.bigint "license_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["license_id", "user_id"], name: "idx_one_active_checkout_per_user_per_license", unique: true, where: "(status = 0)"
+    t.index ["license_id"], name: "index_license_checkouts_on_license_id"
   end
 
   create_table "licenses", force: :cascade do |t|
@@ -31,5 +43,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173450) do
     t.check_constraint "active_seats_count >= 0 AND active_seats_count <= max_seats", name: "active_seats_within_bounds"
   end
 
+  add_foreign_key "license_checkouts", "licenses"
   add_foreign_key "licenses", "companies"
 end
