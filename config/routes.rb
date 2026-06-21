@@ -7,4 +7,9 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  resources :licenses, only: [] do
+    resources :checkouts, only: :create, controller: "license_checkouts"
+    resources :checkins, only: :create, controller: "license_checkins"
+  end
 end
