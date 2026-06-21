@@ -39,7 +39,7 @@ jobs:
           bundler-cache: true
 
       - name: Set up database
-        run: bin/rails db:schema:load
+        run: bundle exec rails db:schema:load
 
       - name: Run RSpec
         run: bundle exec rspec
