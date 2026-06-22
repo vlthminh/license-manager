@@ -28,6 +28,7 @@ locking, DB-level invariants, and tests that exercise both.
   access; SQLite's locking model wouldn't exercise that honestly.
 - **RSpec + FactoryBot + Faker** for tests, **SimpleCov** for coverage.
 - **Rubocop** (`rubocop-rails`, `rubocop-rspec` plugins) for style/lint.
+- **Kaminari** for pagination on the checkout listing endpoint.
 - **GitHub Actions** for CI (RSpec + Rubocop on every push/PR to `main`).
 
 ## 3. Architecture
