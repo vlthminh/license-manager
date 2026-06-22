@@ -18,6 +18,16 @@ default: &default
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Override via .env (see .env.example) if your local Postgres needs auth
+  # instead of peer/local trust (e.g. Postgres in Docker, or a fresh
+  # Homebrew/Windows install). Leave DB_USERNAME unset to keep using the
+  # OS-user trust connection these settings default to.
+  <% if ENV["DB_USERNAME"] %>
+  host: <%= ENV.fetch("DB_HOST", "localhost") %>
+  port: <%= ENV.fetch("DB_PORT", 5432) %>
+  username: <%= ENV["DB_USERNAME"] %>
+  password: <%= ENV["DB_PASSWORD"] %>
+  <% end %>
 
 
 development:
