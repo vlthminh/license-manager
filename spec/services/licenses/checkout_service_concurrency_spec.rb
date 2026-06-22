@@ -10,6 +10,7 @@ RSpec.describe Licenses::CheckoutService do
   self.use_transactional_tests = false
 
   after do
+    LicenseAuditLog.delete_all
     LicenseCheckout.delete_all
     License.delete_all
     Company.delete_all

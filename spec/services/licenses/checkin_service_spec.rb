@@ -45,5 +45,35 @@ RSpec.describe Licenses::CheckinService do
         end
       end
     end
+
+    describe "audit logging" do
+      it "records a successful checkin attempt" do
+        license = create(:license, max_seats: 2, active_seats_count: 1)
+        create(:license_checkout, license: license, user_id: 1, status: :active)
+
+        described_class.new(license_id: license.id, user_id: 1).call
+        log = LicenseAuditLog.last
+
+        aggregate_failures do
+          expect(log.license_id).to eq(license.id)
+          expect(log.action).to eq("checkin")
+          expect(log.success).to be(true)
+          expect(log.message).to eq("License returned successfully")
+        end
+      end
+
+      it "records a rejected attempt when there is no active checkout" do
+        license = create(:license, max_seats: 2, active_seats_count: 0)
+
+        described_class.new(license_id: license.id, user_id: 1).call
+        log = LicenseAuditLog.last
+
+        aggregate_failures do
+          expect(LicenseAuditLog.count).to eq(1)
+          expect(log.success).to be(false)
+          expect(log.message).to eq("No active checkout for this user")
+        end
+      end
+    end
   end
 end

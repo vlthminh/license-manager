@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_21_173853) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_22_152707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,6 +18,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173853) do
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "license_audit_logs", force: :cascade do |t|
+    t.integer "action", null: false
+    t.datetime "created_at", null: false
+    t.integer "license_id", null: false
+    t.string "message", null: false
+    t.boolean "success", default: false, null: false
+    t.integer "user_id", null: false
+    t.index ["license_id"], name: "index_license_audit_logs_on_license_id"
+    t.index ["user_id", "created_at"], name: "index_license_audit_logs_on_user_id_and_created_at"
   end
 
   create_table "license_checkouts", force: :cascade do |t|
