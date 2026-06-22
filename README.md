@@ -318,10 +318,9 @@ request to `main`:
 3. `bundle exec rspec` — all 32 examples.
 4. `bundle exec rubocop` — zero offenses.
 
-See the badge at the top of this file for current status. Note: `main`
-doesn't currently have a branch protection rule requiring this workflow
-to pass before merge — it runs and reports on every push, but isn't
-wired up as a hard merge gate yet.
+See the badge at the top of this file for current status. `main` has a
+branch protection rule requiring the `test` job to pass (and the branch
+to be up to date) before a pull request can be merged.
 
 ## 9. What I'd improve with more time
 
