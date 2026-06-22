@@ -34,27 +34,20 @@ class LicenseCheckoutsController < ApplicationController
   end
 
   def paginated_response(scope)
-    total_count = scope.count
-    checkouts = scope.offset((page_param - 1) * per_page_param).limit(per_page_param)
+    paginated = scope.page(params[:page]).per(per_page_param)
 
     {
-      checkouts: checkouts.map { |checkout| checkout_json(checkout) },
-      page: page_param,
-      per_page: per_page_param,
-      total_count: total_count
+      checkouts: paginated.map { |checkout| checkout_json(checkout) },
+      page: paginated.current_page,
+      per_page: paginated.limit_value,
+      total_count: paginated.total_count
     }
   end
 
-  def page_param
-    @page_param ||= [params[:page].to_i, 1].max
-  end
-
   def per_page_param
-    @per_page_param ||= begin
-      requested = params[:per_page].to_i
-      requested = DEFAULT_PER_PAGE if requested <= 0
-      requested.clamp(1, MAX_PER_PAGE)
-    end
+    requested = params[:per_page].to_i
+    requested = DEFAULT_PER_PAGE if requested <= 0
+    requested.clamp(1, MAX_PER_PAGE)
   end
 
   def checkout_json(checkout)
