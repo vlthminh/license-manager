@@ -9,7 +9,7 @@ Rails.application.routes.draw do
   # root "posts#index"
 
   resources :licenses, only: [] do
-    resources :checkouts, only: :create, controller: "license_checkouts"
+    resources :checkouts, only: %i[create index], controller: "license_checkouts"
     resources :checkins, only: :create, controller: "license_checkins"
   end
 end
