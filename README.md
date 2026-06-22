@@ -387,6 +387,3 @@ to be up to date) before a pull request can be merged.
   access.
 - **Rate limiting**: protect the checkout endpoint from being hammered by
   a misbehaving client.
-- **Security scanning in CI**: Brakeman (static analysis) and
-  `bundle audit` (dependency CVEs) aren't wired up — Rubocop only checks
-  style, not security.
