@@ -10,6 +10,14 @@ module Licenses
     end
 
     def call
+      result = perform
+      record_audit_log(result)
+      result
+    end
+
+    private
+
+    def perform
       license = License.find_by(id: @license_id)
       return Result.new(success?: false, message: "License not found") unless license
 
@@ -24,6 +32,16 @@ module Licenses
 
         Result.new(success?: true, message: "License returned successfully")
       end
+    end
+
+    def record_audit_log(result)
+      LicenseAuditLog.create!(
+        license_id: @license_id,
+        user_id: @user_id,
+        action: :checkin,
+        success: result.success?,
+        message: result.message
+      )
     end
   end
 end

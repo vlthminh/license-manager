@@ -59,5 +59,34 @@ RSpec.describe Licenses::CheckoutService do
         end
       end
     end
+
+    describe "audit logging" do
+      it "records a successful checkout attempt" do
+        license = create(:license, max_seats: 2, active_seats_count: 0)
+
+        described_class.new(license_id: license.id, user_id: 1).call
+        log = LicenseAuditLog.last
+
+        aggregate_failures do
+          expect(log.license_id).to eq(license.id)
+          expect(log.user_id).to eq(1)
+          expect(log.action).to eq("checkout")
+          expect(log.success).to be(true)
+          expect(log.message).to eq("License allocated successfully")
+        end
+      end
+
+      it "records a rejected attempt even when the license does not exist" do
+        described_class.new(license_id: -1, user_id: 1).call
+        log = LicenseAuditLog.last
+
+        aggregate_failures do
+          expect(LicenseAuditLog.count).to eq(1)
+          expect(log.license_id).to eq(-1)
+          expect(log.success).to be(false)
+          expect(log.message).to eq("License not found")
+        end
+      end
+    end
   end
 end
