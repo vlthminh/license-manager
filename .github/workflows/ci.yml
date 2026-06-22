@@ -5,18 +5,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-    types: [labeled]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    # On a PR, this only fires when a label is added, and only actually runs
-    # for the "ci-ready" label specifically (set by checking the box in the
-    # bot's PR comment) — new commits never auto-run this job. See
-    # pr-ci-reset.yml, which strips the label on every new commit so the box
-    # has to be re-checked before merging.
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-ready')
+    # Skip while a PR is still a draft (every push to main and manual runs
+    # always run; this only applies to pull_request events).
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     services:
       postgres:
