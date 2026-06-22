@@ -1,5 +1,11 @@
 # See https://git-scm.com/docs/gitattributes for more about git attribute files.
 
+# Force LF line endings for all text files regardless of the local
+# core.autocrlf setting. Without this, switching branches on a Windows
+# checkout (core.autocrlf=true) rewrites files with CRLF, which then
+# fails Rubocop's Layout/EndOfLine cop.
+* text=auto eol=lf
+
 # Mark the database schema as having been generated.
 db/schema.rb linguist-generated
 
