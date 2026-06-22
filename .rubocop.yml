@@ -28,6 +28,10 @@ Metrics/BlockLength:
 Metrics/MethodLength:
   Max: 15
 
+Rails/Output:
+  Exclude:
+    - "db/seeds.rb"
+
 RSpec/ExampleLength:
   Max: 15
 
