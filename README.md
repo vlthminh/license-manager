@@ -28,6 +28,7 @@ locking, DB-level invariants, and tests that exercise both.
   access; SQLite's locking model wouldn't exercise that honestly.
 - **RSpec + FactoryBot + Faker** for tests, **SimpleCov** for coverage.
 - **Rubocop** (`rubocop-rails`, `rubocop-rspec` plugins) for style/lint.
+- **Kaminari** for pagination on the checkout listing endpoint.
 - **GitHub Actions** for CI (RSpec + Rubocop on every push/PR to `main`).
 
 ## 3. Architecture
@@ -305,6 +306,22 @@ HTTP/1.1 409 Conflict
 {"message":"No active checkout for this user"}
 ```
 
+### List checkouts for a license (paginated, optionally filtered by status)
+
+```bash
+curl -i "http://localhost:3000/licenses/1/checkouts?status=active&page=1&per_page=20"
+```
+
+```
+HTTP/1.1 200 OK
+
+{"checkouts":[{"id":7,"license_id":1,"user_id":42,"status":"active","checked_out_at":"2026-06-21T18:00:00.000Z","checked_in_at":null}],"page":1,"per_page":20,"total_count":1}
+```
+
+`status` is optional (omit it to see the full history, active and
+returned); an unrecognized value returns `422`. `per_page` is clamped to
+1–100 (default 20).
+
 ## 8. CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull
@@ -337,6 +354,3 @@ to be up to date) before a pull request can be merged.
   and abuse investigation.
 - **Rate limiting**: protect the checkout endpoint from being hammered by
   a misbehaving client.
-- **Pagination/listing endpoints**: e.g. `GET /licenses/:id/checkouts` to
-  see who currently holds a seat — useful for admins, not modeled here
-  since it wasn't part of the core problem.

@@ -42,4 +42,60 @@ RSpec.describe "License checkouts", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "GET /licenses/:license_id/checkouts" do
+    it "lists checkouts for the license, most recent first" do
+      license = create(:license, max_seats: 5, active_seats_count: 2)
+      older = create(:license_checkout, license: license, user_id: 1, checked_out_at: 2.days.ago)
+      newer = create(:license_checkout, license: license, user_id: 2, checked_out_at: 1.day.ago)
+
+      get "/licenses/#{license.id}/checkouts"
+
+      aggregate_failures do
+        expect(response).to have_http_status(:ok)
+        ids = response.parsed_body["checkouts"].pluck("id")
+        expect(ids).to eq([newer.id, older.id])
+        expect(response.parsed_body["total_count"]).to eq(2)
+      end
+    end
+
+    it "filters by status" do
+      license = create(:license, max_seats: 5, active_seats_count: 1)
+      active = create(:license_checkout, license: license, user_id: 1, status: :active)
+      create(:license_checkout, license: license, user_id: 2, status: :returned)
+
+      get "/licenses/#{license.id}/checkouts", params: { status: "active" }
+
+      ids = response.parsed_body["checkouts"].pluck("id")
+      expect(ids).to eq([active.id])
+    end
+
+    it "returns 422 for an invalid status filter" do
+      license = create(:license, max_seats: 5)
+
+      get "/licenses/#{license.id}/checkouts", params: { status: "bogus" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "paginates results" do
+      license = create(:license, max_seats: 5, active_seats_count: 3)
+      create_list(:license_checkout, 3, license: license)
+
+      get "/licenses/#{license.id}/checkouts", params: { page: 1, per_page: 2 }
+
+      aggregate_failures do
+        expect(response.parsed_body["checkouts"].size).to eq(2)
+        expect(response.parsed_body["page"]).to eq(1)
+        expect(response.parsed_body["per_page"]).to eq(2)
+        expect(response.parsed_body["total_count"]).to eq(3)
+      end
+    end
+
+    it "returns 404 when the license does not exist" do
+      get "/licenses/-1/checkouts"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end
