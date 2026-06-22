@@ -32,10 +32,87 @@ locking, DB-level invariants, and tests that exercise both.
 
 ## 3. Architecture
 
+### Repo structure
+
 ```
-Controller  ->  Service Object  ->  ActiveRecord Model  ->  PostgreSQL
-(thin)          (business logic)     (validations,           (CHECK constraint,
-                                       associations)           unique index)
+license-manager/
+│
+├── app/
+│   ├── controllers/
+│   │   ├── application_controller.rb
+│   │   ├── license_checkouts_controller.rb      # POST /licenses/:license_id/checkouts
+│   │   └── license_checkins_controller.rb       # POST /licenses/:license_id/checkins
+│   │
+│   ├── services/
+│   │   └── licenses/
+│   │       ├── checkout_service.rb               # business logic: allocate a seat (with_lock)
+│   │       └── checkin_service.rb                # business logic: release a seat (with_lock)
+│   │
+│   ├── models/
+│   │   ├── application_record.rb
+│   │   ├── company.rb                            # has_many :licenses
+│   │   ├── license.rb                            # belongs_to :company, has_many :license_checkouts
+│   │   └── license_checkout.rb                   # belongs_to :license, enum status: active/returned
+│   │
+│   ├── jobs/application_job.rb                   # unused Rails scaffold (no real jobs defined)
+│   └── mailers/application_mailer.rb             # unused Rails scaffold (no real mailers defined)
+│
+├── config/
+│   ├── routes.rb                                 # nests checkouts/checkins under :licenses
+│   ├── database.yml                              # Postgres; dev/test peer-auth + DB_* env overrides
+│   └── ...                                       # application.rb, environments/, initializers/
+│
+├── db/
+│   ├── migrate/
+│   │   ├── ..._create_companies.rb
+│   │   ├── ..._create_licenses.rb                # + CHECK constraint (0 <= active_seats_count <= max_seats)
+│   │   └── ..._create_license_checkouts.rb       # + unique partial index (one active checkout/user/license)
+│   ├── schema.rb
+│   └── seeds.rb                                  # interview demo data (ARMADA company, 2 licenses)
+│
+├── spec/
+│   ├── models/                                   # validations + DB constraint specs
+│   │   ├── company_spec.rb
+│   │   ├── license_spec.rb
+│   │   └── license_checkout_spec.rb
+│   ├── services/licenses/                        # the core business-logic specs
+│   │   ├── checkout_service_spec.rb              # TDD'd happy/sad paths
+│   │   ├── checkin_service_spec.rb               # TDD'd happy/sad paths
+│   │   ├── seat_invariant_spec.rb                # randomized invariant + edge cases
+│   │   └── checkout_service_concurrency_spec.rb  # 20-thread race-condition test
+│   ├── requests/                                 # HTTP-level specs (status codes)
+│   │   ├── license_checkouts_spec.rb
+│   │   └── license_checkins_spec.rb
+│   ├── factories/                                # FactoryBot definitions
+│   └── rails_helper.rb / spec_helper.rb
+│
+├── .github/workflows/ci.yml                      # RSpec + Rubocop against real Postgres on every push/PR
+├── .env.example                                  # DB_USERNAME/PASSWORD/HOST/PORT (+ _PRODUCTION variants)
+├── .rubocop.yml
+├── Gemfile / Gemfile.lock
+├── README.md                                     # architecture, trade-offs, API examples
+│
+└── (bin/, config.ru, Rakefile, public/, log/, tmp/, storage/, vendor/ — standard Rails boilerplate)
+```
+
+### Request flow
+
+```
+HTTP request
+     │
+     ▼
+LicenseCheckoutsController / LicenseCheckinsController   (thin: params → service → JSON+status)
+     │
+     ▼
+Licenses::CheckoutService / Licenses::CheckinService      (business rules, License#with_lock)
+     │
+     ▼
+License ──belongs_to── Company
+   │
+   └─has_many── LicenseCheckout (enum status: active/returned)
+     │
+     ▼
+PostgreSQL  (CHECK constraint on active_seats_count, unique partial index on active checkouts)
 ```
 
 - `LicenseCheckoutsController#create` / `LicenseCheckinsController#create`
@@ -124,11 +201,10 @@ rails db:migrate
 No `.env` file is required for local development — `config/database.yml`
 relies on Postgres peer/local trust auth via the OS user, same as a
 default `rails new --database=postgresql` setup. If your local Postgres
-needs a password, set `DATABASE_URL` before running any `rails` command:
-
-```bash
-export DATABASE_URL=postgres://user:password@localhost:5432/license_manager_development
-```
+instead needs a username/password (common with Docker, Homebrew, or the
+Windows installer), copy `.env.example` to `.env` and fill in
+`DB_USERNAME`/`DB_PASSWORD` (and `DB_HOST`/`DB_PORT` if not on the
+defaults) — `dotenv-rails` loads `.env` automatically in dev/test.
 
 ## 6. Running tests
 
