@@ -3,11 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    # On a PR, only actually run once the "ci-ready" label is attached (set by
+    # checking the box in the bot's PR comment) — keeps WIP pushes from
+    # burning Actions minutes. Push to main and manual runs always run.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-ready')
 
     services:
       postgres:

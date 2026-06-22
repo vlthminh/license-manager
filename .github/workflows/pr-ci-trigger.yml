@@ -5,8 +5,8 @@ on:
     types: [edited]
 
 permissions:
-  actions: write
-  pull-requests: read
+  issues: write
+  pull-requests: write
 
 jobs:
   trigger:
@@ -16,18 +16,14 @@ jobs:
       contains(github.event.comment.body, '[x] Run CI')
     runs-on: ubuntu-latest
     steps:
-      - name: Look up the PR's head branch
-        id: pr
+      # Re-applying the same label doesn't fire a new "labeled" event, so
+      # remove it first (ignoring the error if it wasn't present) to make
+      # re-checking the box after new commits trigger a fresh CI run.
+      - name: Toggle the ci-ready label to re-trigger CI on this PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
-          ref=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefName -q .headRefName)
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-
-      - name: Trigger the CI workflow on that branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        run: gh workflow run ci.yml --repo "$REPO" --ref "${{ steps.pr.outputs.ref }}"
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label ci-ready || true
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label ci-ready
