@@ -94,5 +94,7 @@ test:
 production:
   <<: *default
   database: license_manager_production
-  username: license_manager
-  password: <%= ENV["LICENSE_MANAGER_DATABASE_PASSWORD"] %>
+  host: <%= ENV["DB_HOST_PRODUCTION"] %>
+  port: <%= ENV.fetch("DB_PORT_PRODUCTION", 5432) %>
+  username: <%= ENV.fetch("DB_USERNAME_PRODUCTION", "license_manager") %>
+  password: <%= ENV["DB_PASSWORD_PRODUCTION"] %>
