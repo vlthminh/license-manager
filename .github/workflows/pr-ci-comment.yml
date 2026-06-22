@@ -1,0 +1,40 @@
+name: PR CI Trigger Comment
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post CI trigger checkbox (if not already posted)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          existing=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json comments \
+            --jq '.comments[] | select(.body | contains("Run CI")) | .id' | head -n1)
+
+          if [ -n "$existing" ]; then
+            echo "CI trigger comment already exists, skipping."
+            exit 0
+          fi
+
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$(cat <<'EOF'
+          ## CI
+
+          - [ ] Run CI (rspec + rubocop)
+
+          CI does not run automatically on every push, to avoid burning Actions
+          minutes while the PR is still a work in progress. Check the box above
+          when you're ready for review — that triggers the actual run. Pushed
+          new commits since the last run? Uncheck and re-check the box to run
+          again before merging.
+          EOF
+          )"

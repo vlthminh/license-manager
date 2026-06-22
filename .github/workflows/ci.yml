@@ -3,14 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
-    inputs:
-      run_rubocop:
-        description: "Also run Rubocop"
-        type: boolean
-        default: true
 
 jobs:
   test:
@@ -51,5 +44,4 @@ jobs:
         run: bundle exec rspec
 
       - name: Run Rubocop
-        if: github.event_name != 'workflow_dispatch' || inputs.run_rubocop
         run: bundle exec rubocop

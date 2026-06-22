@@ -1,0 +1,33 @@
+name: PR CI Trigger (checkbox)
+
+on:
+  issue_comment:
+    types: [edited]
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  trigger:
+    if: >
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.login == 'github-actions[bot]' &&
+      contains(github.event.comment.body, '[x] Run CI')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look up the PR's head branch
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          ref=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefName -q .headRefName)
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger the CI workflow on that branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run ci.yml --repo "$REPO" --ref "${{ steps.pr.outputs.ref }}"
