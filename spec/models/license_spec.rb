@@ -19,6 +19,17 @@ RSpec.describe License, type: :model do
     expect(license).not_to be_valid
   end
 
+  it "is valid without a license_key (no generation mechanism yet)" do
+    expect(build(:license, license_key: nil)).to be_valid
+  end
+
+  it "is invalid with a license_key that's already taken" do
+    create(:license, license_key: "DUPLICATE-KEY")
+    license = build(:license, license_key: "DUPLICATE-KEY")
+
+    expect(license).not_to be_valid
+  end
+
   describe "associations" do
     it "has many license_checkouts and destroys them when the license is destroyed" do
       reflection = described_class.reflect_on_association(:license_checkouts)
@@ -47,6 +58,15 @@ RSpec.describe License, type: :model do
       expect do
         license.update_column(:active_seats_count, -1)
       end.to raise_error(ActiveRecord::StatementInvalid, /active_seats_within_bounds/)
+    end
+
+    it "rejects a duplicate license_key at the database level" do
+      create(:license, license_key: "DUPLICATE-KEY")
+      other = create(:license, license_key: nil)
+
+      expect do
+        other.update_column(:license_key, "DUPLICATE-KEY")
+      end.to raise_error(ActiveRecord::StatementInvalid, /index_licenses_on_license_key/)
     end
     # rubocop:enable Rails/SkipsModelValidations
   end

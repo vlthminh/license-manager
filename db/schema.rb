@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_22_152707) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_23_153402) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,10 +47,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_152707) do
     t.integer "active_seats_count", default: 0, null: false
     t.bigint "company_id", null: false
     t.datetime "created_at", null: false
+    t.string "license_key"
     t.integer "max_seats", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["company_id"], name: "index_licenses_on_company_id"
+    t.index ["license_key"], name: "index_licenses_on_license_key", unique: true
     t.check_constraint "active_seats_count >= 0 AND active_seats_count <= max_seats", name: "active_seats_within_bounds"
   end
 
