@@ -69,7 +69,8 @@ license-manager/
 │   │   ├── ..._create_companies.rb
 │   │   ├── ..._create_licenses.rb                # + CHECK constraint (0 <= active_seats_count <= max_seats)
 │   │   ├── ..._create_license_checkouts.rb       # + unique partial index (one active checkout/user/license)
-│   │   └── ..._create_license_audit_logs.rb      # no FK on license_id — must log "license not found" too
+│   │   ├── ..._create_license_audit_logs.rb      # no FK on license_id — must log "license not found" too
+│   │   └── ..._add_license_key_to_licenses.rb    # globally-unique key column, no lookup route yet
 │   ├── schema.rb
 │   └── seeds.rb                                  # interview demo data (ARMADA company, 2 licenses)
 │
@@ -218,6 +219,31 @@ there's no reason to maintain the equivalent logic by hand. Kaminari's
 view helpers (the part of the gem built for HTML pagination links) go
 unused, since this is a JSON-only API — only its core ActiveRecord
 pagination methods are needed.
+
+### `license_key`: a column today, no lookup route yet
+
+`licenses.license_key` exists (string, globally unique — both a DB
+unique index and a model-level `validates :license_key, uniqueness:
+true, allow_nil: true`) but nothing generates a value on create, and
+there's no `GET /licenses/by_key/:license_key`-style endpoint yet. This
+app's `:license_id` in routes is currently the raw Postgres primary key,
+which doesn't reflect how a real floating license actually works — the
+client software would have been handed an opaque key string when the
+company bought seats, never the internal database id. Adding the column
+ahead of the lookup endpoint is deliberate scope-staging: the checkout/
+checkin logic is what this demo is about, so the key exists and is
+provably unique, but wiring an actual key-based API is left for later
+rather than building it half-finished alongside everything else.
+
+The uniqueness is **global across the whole table**, not scoped to
+anything (e.g. not "unique per company" or "unique per `id`" — pairing
+a unique check with a primary key is meaningless, since the primary key
+is already unique on every row by definition). Global uniqueness is the
+correct constraint here because the eventual lookup
+(`License.find_by(license_key: ...)`) has no other column available to
+disambiguate — two licenses sharing the same key would make that lookup
+return whichever row Postgres happens to pick, silently routing requests
+to the wrong company's license pool.
 
 ## 5. Setup instructions
 
