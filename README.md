@@ -55,9 +55,6 @@ license-manager/
 │   │   ├── license.rb                            # belongs_to :company, has_many :license_checkouts
 │   │   ├── license_checkout.rb                   # belongs_to :license, enum status: active/returned
 │   │   └── license_audit_log.rb                  # append-only log of every checkout/checkin attempt
-│   │
-│   ├── jobs/application_job.rb                   # unused Rails scaffold (no real jobs defined)
-│   └── mailers/application_mailer.rb             # unused Rails scaffold (no real mailers defined)
 │
 ├── config/                                       # routes.rb, database.yml, application.rb, environments/, initializers/
 │
