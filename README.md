@@ -59,37 +59,16 @@ license-manager/
 │   ├── jobs/application_job.rb                   # unused Rails scaffold (no real jobs defined)
 │   └── mailers/application_mailer.rb             # unused Rails scaffold (no real mailers defined)
 │
-├── config/
-│   ├── routes.rb                                 # nests checkouts/checkins under :licenses
-│   ├── database.yml                              # Postgres; dev/test peer-auth + DB_* env overrides
-│   └── ...                                       # application.rb, environments/, initializers/
+├── config/                                       # routes.rb, database.yml, application.rb, environments/, initializers/
 │
 ├── db/
-│   ├── migrate/
-│   │   ├── ..._create_companies.rb
-│   │   ├── ..._create_licenses.rb                # + CHECK constraint (0 <= active_seats_count <= max_seats)
-│   │   ├── ..._create_license_checkouts.rb       # + unique partial index (one active checkout/user/license)
-│   │   ├── ..._create_license_audit_logs.rb      # no FK on license_id — must log "license not found" too
-│   │   └── ..._add_license_key_to_licenses.rb    # globally-unique key column, no lookup route yet
+│   ├── migrate/                                  # CHECK constraint on licenses, unique partial index on active
+│   │                                              # checkouts, no FK on license_audit_logs.license_id
 │   ├── schema.rb
 │   └── seeds.rb                                  # interview demo data (ARMADA company, 2 licenses)
 │
-├── spec/
-│   ├── models/                                   # validations + DB constraint specs
-│   │   ├── company_spec.rb
-│   │   ├── license_spec.rb
-│   │   ├── license_checkout_spec.rb
-│   │   └── license_audit_log_spec.rb
-│   ├── services/licenses/                        # the core business-logic specs
-│   │   ├── checkout_service_spec.rb              # TDD'd happy/sad paths
-│   │   ├── checkin_service_spec.rb               # TDD'd happy/sad paths
-│   │   ├── seat_invariant_spec.rb                # randomized invariant + edge cases
-│   │   └── checkout_service_concurrency_spec.rb  # 20-thread race-condition test
-│   ├── requests/                                 # HTTP-level specs (status codes)
-│   │   ├── license_checkouts_spec.rb
-│   │   └── license_checkins_spec.rb
-│   ├── factories/                                # FactoryBot definitions
-│   └── rails_helper.rb / spec_helper.rb
+├── spec/                                         # models/, services/licenses/ (incl. concurrency + invariant
+│                                                  # specs), requests/, factories/, rails_helper.rb
 │
 ├── .github/workflows/ci.yml                      # RSpec + Rubocop against real Postgres on every push/PR
 ├── .env.example                                  # DB_USERNAME/PASSWORD/HOST/PORT (+ _PRODUCTION variants)
