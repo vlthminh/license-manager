@@ -42,19 +42,17 @@ RSpec.describe License, type: :model do
   end
 
   describe "database constraints" do
+    let(:license) { create(:license, max_seats: 3, active_seats_count: 0) }
+
     # rubocop:disable Rails/SkipsModelValidations -- intentionally bypassing
     # validations to prove the DB-level CHECK constraint itself rejects bad data.
     it "rejects an active_seats_count above max_seats at the database level" do
-      license = create(:license, max_seats: 3, active_seats_count: 0)
-
       expect do
         license.update_column(:active_seats_count, 4)
       end.to raise_error(ActiveRecord::StatementInvalid, /active_seats_within_bounds/)
     end
 
     it "rejects a negative active_seats_count at the database level" do
-      license = create(:license, max_seats: 3, active_seats_count: 0)
-
       expect do
         license.update_column(:active_seats_count, -1)
       end.to raise_error(ActiveRecord::StatementInvalid, /active_seats_within_bounds/)

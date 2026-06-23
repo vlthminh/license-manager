@@ -20,8 +20,9 @@ RSpec.describe LicenseCheckout, type: :model do
   end
 
   describe "database constraints" do
+    let(:license) { create(:license, max_seats: 5) }
+
     it "rejects a second active checkout for the same user and license" do
-      license = create(:license, max_seats: 5)
       create(:license_checkout, license: license, user_id: 1, status: :active)
 
       expect do
@@ -30,7 +31,6 @@ RSpec.describe LicenseCheckout, type: :model do
     end
 
     it "allows a new active checkout once the previous one was returned" do
-      license = create(:license, max_seats: 5)
       create(:license_checkout, license: license, user_id: 1, status: :returned)
 
       expect do
