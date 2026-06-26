@@ -20,6 +20,10 @@ class LicenseCheckoutsController < ApplicationController
     else
       render json: { message: result.message }, status: error_status_for(result.message)
     end
+  rescue ActiveRecord::RecordInvalid => e
+    render json: { message: e.message }, status: :unprocessable_content
+  rescue StandardError
+    render json: { message: "An unexpected error occurred" }, status: :internal_server_error
   end
 
   private
