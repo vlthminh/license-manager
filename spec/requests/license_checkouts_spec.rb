@@ -44,7 +44,9 @@ RSpec.describe "License checkouts", type: :request do
 
     it "returns 422 when the service raises ActiveRecord::RecordInvalid" do
       license = create(:license)
-      allow_any_instance_of(Licenses::CheckoutService).to receive(:call).and_raise(ActiveRecord::RecordInvalid)
+      service = instance_double(Licenses::CheckoutService)
+      allow(Licenses::CheckoutService).to receive(:new).and_return(service)
+      allow(service).to receive(:call).and_raise(ActiveRecord::RecordInvalid)
 
       post "/licenses/#{license.id}/checkouts", params: { user_id: 1 }
 
@@ -53,7 +55,9 @@ RSpec.describe "License checkouts", type: :request do
 
     it "returns 500 when the service raises an unexpected error" do
       license = create(:license)
-      allow_any_instance_of(Licenses::CheckoutService).to receive(:call).and_raise(StandardError)
+      service = instance_double(Licenses::CheckoutService)
+      allow(Licenses::CheckoutService).to receive(:new).and_return(service)
+      allow(service).to receive(:call).and_raise(StandardError)
 
       post "/licenses/#{license.id}/checkouts", params: { user_id: 1 }
 
