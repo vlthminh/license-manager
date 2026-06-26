@@ -80,10 +80,11 @@ RSpec.describe Licenses::CheckinService do
         checkout = create(:license_checkout, license: license, user_id: 1, status: :active)
         allow(LicenseAuditLog).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(LicenseAuditLog.new))
 
-        expect { described_class.new(license_id: license.id, user_id: 1).call }.to raise_error(ActiveRecord::RecordInvalid)
-
-        expect(checkout.reload.status).to eq("active")
-        expect(license.reload.active_seats_count).to eq(1)
+        aggregate_failures do
+          expect { described_class.new(license_id: license.id, user_id: 1).call }.to raise_error(ActiveRecord::RecordInvalid)
+          expect(checkout.reload.status).to eq("active")
+          expect(license.reload.active_seats_count).to eq(1)
+        end
       end
     end
   end
