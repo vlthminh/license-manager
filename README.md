@@ -98,12 +98,17 @@ PostgreSQL  (CHECK constraint on active_seats_count, unique partial index on act
 
 - `LicenseCheckoutsController#create` / `LicenseCheckinsController#create`
   do nothing but pull params, call a service, and translate the service's
-  `Result` into an HTTP status + JSON body.
+  `Result` into an HTTP status + JSON body. `ApplicationController` adds
+  two escape hatches via `rescue_from`: `ActiveRecord::RecordInvalid` →
+  422 and `StandardError` → 500, so any unexpected exception returns
+  structured JSON rather than an unformatted crash. Both handlers live in
+  `ApplicationController` so every future controller gets them for free.
 - `Licenses::CheckoutService` / `Licenses::CheckinService` hold all the
   business rules: "is there a seat available", "does this user already
-  have one", "lock the row before touching the counter". Both also write
-  a `LicenseAuditLog` row for every attempt, success or rejected, as the
-  last step before returning their result.
+  have one", "lock the row before touching the counter". Both wrap their
+  work in `ApplicationRecord.transaction` — so the checkout write and the
+  `LicenseAuditLog` write commit or roll back together. An audit log
+  failure can never leave a checkout committed but unlogged.
 - Models stay thin: validations and associations only, no business logic.
 
 **Why a service object instead of putting this in the model or
@@ -150,9 +155,40 @@ correct:
   WHERE status = 'active'` — even if the service's `exists?` check were
   ever bypassed, the database itself refuses to create a second
   simultaneous active checkout for the same user/license pair.
+- `checked_out_at NOT NULL` on `license_checkouts` — the service always
+  sets this on create, so it's redundant in the happy path but prevents
+  bad data from any other write path (console, direct SQL).
+- Covering indexes `(license_id, checked_out_at)` and `(license_id,
+  status)` on `license_checkouts` — support the ordered listing query and
+  the `?status=` filter query respectively without a sequential scan.
 
 This is "trust, but verify": application code expresses intent, the
 database enforces the invariant no matter what called it.
+
+### Global error handling via `rescue_from`
+
+`ApplicationController` rescues two exception types globally:
+
+- `ActiveRecord::RecordInvalid` → 422 Unprocessable Entity, with the
+  validation message in the JSON body. Covers validation failures that
+  escape the service layer.
+- `StandardError` → 500 Internal Server Error with a generic message.
+  Ensures any unexpected exception (DB connection failure, a nil
+  dereference) returns structured JSON rather than an HTML error page.
+
+Both handlers sit in `ApplicationController` so every controller
+inherits them without any extra wiring.
+
+### Audit log atomicity
+
+`CheckoutService#call` and `CheckinService#call` wrap their entire
+operation — including `LicenseAuditLog.create!` — in
+`ApplicationRecord.transaction`. Without this, a validation error raised
+by `record_audit_log` *after* `with_lock` committed would propagate to
+the 500 `rescue_from` handler while the checkout row and counter
+increment were already persisted: the client sees a failure but a seat
+has been allocated. Wrapping both writes in the same transaction ensures
+they commit or roll back together.
 
 ### No automatic expiry/TTL on checkouts
 
@@ -246,25 +282,28 @@ defaults) — `dotenv-rails` loads `.env` automatically in dev/test.
 bundle exec rspec
 ```
 
-47 examples across three layers:
+57 examples across three layers:
 
-- **`spec/models`** (20) — validations, associations, and direct proof
-  that the DB `CHECK` constraint and unique partial index reject bad
-  data even when application-level validations are bypassed
-  (`update_column`, raw inserts); also covers `LicenseAuditLog`,
-  including that it logs an attempt against a license id that doesn't
-  exist (no DB-level FK on purpose).
-- **`spec/services/licenses`** (15) — `Licenses::CheckoutService` and
+- **`spec/models`** (24) — validations, associations, and direct proof
+  that the DB `CHECK` constraint, unique partial index, and
+  `checked_out_at NOT NULL` constraint reject bad data even when
+  application-level validations are bypassed (`update_column`, raw
+  inserts); also covers `LicenseAuditLog`, including that it logs an
+  attempt against a license id that doesn't exist (no DB-level FK on
+  purpose).
+- **`spec/services/licenses`** (17) — `Licenses::CheckoutService` and
   `Licenses::CheckinService` were written test-first: each spec was
   confirmed *failing* (`NameError: uninitialized constant`) before the
   implementation existed. Includes a randomized invariant test (repeated
   checkout/checkin sequences never desync `active_seats_count` from the
   real row count), a 20-thread concurrency test proving the row lock
-  holds under real contention, and audit-logging assertions for both a
-  successful and a rejected attempt per service.
-- **`spec/requests`** (12) — HTTP-level specs asserting status codes
-  (201/200/409/404/422) end to end through the controllers, including
-  listing/filtering/pagination on the checkouts index endpoint.
+  holds under real contention, audit-logging assertions for both
+  successful and rejected attempts, and rollback tests proving that a
+  `LicenseAuditLog.create!` failure rolls back the checkout as well.
+- **`spec/requests`** (16) — HTTP-level specs asserting status codes
+  (201/200/409/404/422/500) end to end through the controllers, including
+  listing/filtering/pagination on the checkouts index endpoint and the
+  `rescue_from` error-handling paths.
 
 A coverage report is generated by SimpleCov on every run, under
 `coverage/index.html`. `app/models`, `app/services`, and
