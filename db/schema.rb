@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_23_153402) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_26_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -33,12 +33,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_23_153402) do
 
   create_table "license_checkouts", force: :cascade do |t|
     t.datetime "checked_in_at"
-    t.datetime "checked_out_at"
+    t.datetime "checked_out_at", null: false
     t.datetime "created_at", null: false
     t.bigint "license_id", null: false
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
+    t.index ["license_id", "checked_out_at"], name: "idx_license_checkouts_on_license_id_and_checked_out_at"
+    t.index ["license_id", "status"], name: "idx_license_checkouts_on_license_id_and_status"
     t.index ["license_id", "user_id"], name: "idx_one_active_checkout_per_user_per_license", unique: true, where: "(status = 0)"
     t.index ["license_id"], name: "index_license_checkouts_on_license_id"
   end
