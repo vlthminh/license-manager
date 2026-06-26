@@ -41,6 +41,31 @@ RSpec.describe "License checkouts", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+
+    it "returns 422 when the service raises ActiveRecord::RecordInvalid" do
+      license = create(:license)
+      service = instance_double(Licenses::CheckoutService)
+      allow(Licenses::CheckoutService).to receive(:new).and_return(service)
+      allow(service).to receive(:call).and_raise(ActiveRecord::RecordInvalid)
+
+      post "/licenses/#{license.id}/checkouts", params: { user_id: 1 }
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "returns 500 when the service raises an unexpected error" do
+      license = create(:license)
+      service = instance_double(Licenses::CheckoutService)
+      allow(Licenses::CheckoutService).to receive(:new).and_return(service)
+      allow(service).to receive(:call).and_raise(StandardError)
+
+      post "/licenses/#{license.id}/checkouts", params: { user_id: 1 }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:internal_server_error)
+        expect(response.parsed_body["message"]).to eq("An unexpected error occurred")
+      end
+    end
   end
 
   describe "GET /licenses/:license_id/checkouts" do
