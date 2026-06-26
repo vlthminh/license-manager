@@ -10,9 +10,11 @@ module Licenses
     end
 
     def call
-      result = perform
-      record_audit_log(result)
-      result
+      ApplicationRecord.transaction do
+        result = perform
+        record_audit_log(result)
+        result
+      end
     end
 
     private
