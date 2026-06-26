@@ -37,5 +37,11 @@ RSpec.describe LicenseCheckout, type: :model do
         create(:license_checkout, license: license, user_id: 1, status: :active)
       end.not_to raise_error
     end
+
+    it "rejects a null checked_out_at at the database level" do
+      checkout = create(:license_checkout, license: license, user_id: 1)
+
+      expect { checkout.update_column(:checked_out_at, nil) }.to raise_error(ActiveRecord::NotNullViolation)
+    end
   end
 end

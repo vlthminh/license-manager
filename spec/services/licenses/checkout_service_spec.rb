@@ -87,6 +87,16 @@ RSpec.describe Licenses::CheckoutService do
           expect(log.message).to eq("License not found")
         end
       end
+
+      it "rolls back the checkout when the audit log write fails" do
+        license = create(:license, max_seats: 2, active_seats_count: 0)
+        allow(LicenseAuditLog).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(LicenseAuditLog.new))
+
+        expect { described_class.new(license_id: license.id, user_id: 1).call }.to raise_error(ActiveRecord::RecordInvalid)
+
+        expect(LicenseCheckout.count).to eq(0)
+        expect(license.reload.active_seats_count).to eq(0)
+      end
     end
   end
 end
