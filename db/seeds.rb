@@ -31,6 +31,9 @@ company = Company.create!(name: "ARMADA")
 #   http POST :3000/licenses/1/checkouts user_id=1
 #   http POST :3000/licenses/1/checkouts user_id=2
 #   http POST :3000/licenses/1/checkouts user_id=3   # <- rejected, pool full
+#
+# To list all licenses for ARMADA (company id always resets to 1):
+#   http GET :3000/companies/1/licenses
 demo_license = License.create!(
   company: company,
   name: "Toon Boom Harmony 21 — Floating License",
