@@ -8,6 +8,10 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
+  resources :companies, only: [] do
+    resources :licenses, only: :index
+  end
+
   resources :licenses, only: [] do
     resources :checkouts, only: %i[create index], controller: "license_checkouts"
     resources :checkins, only: :create, controller: "license_checkins"
