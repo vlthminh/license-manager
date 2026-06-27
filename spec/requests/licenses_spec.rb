@@ -78,7 +78,8 @@ RSpec.describe "Licenses", type: :request do
 
     it "returns 422 when ActiveRecord::RecordInvalid is raised" do
       company = create(:company)
-      allow_any_instance_of(Company).to receive(:licenses).and_raise(ActiveRecord::RecordInvalid)
+      allow(Company).to receive(:find_by).and_return(company)
+      allow(company).to receive(:licenses).and_raise(ActiveRecord::RecordInvalid)
 
       get "/companies/#{company.id}/licenses"
 
@@ -87,7 +88,8 @@ RSpec.describe "Licenses", type: :request do
 
     it "returns 500 when an unexpected error is raised" do
       company = create(:company)
-      allow_any_instance_of(Company).to receive(:licenses).and_raise(StandardError)
+      allow(Company).to receive(:find_by).and_return(company)
+      allow(company).to receive(:licenses).and_raise(StandardError)
 
       get "/companies/#{company.id}/licenses"
 
